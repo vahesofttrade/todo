@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Work Tasks — Me & Boss</title>
+<style>
+  :root{
+    --asphalt:#15181E;
+    --card:#1F242D;
+    --card-edge:#2C333F;
+    --amber:#FFB020;
+    --amber-dark:#CC8A0E;
+    --green:#3DCB7D;
+    --red:#F45B5B;
+    --blue:#5BA8F4;
+    --text:#F2F4F7;
+    --text-dim:#98A2B3;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  body{
+    background:var(--asphalt);
+    color:var(--text);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    min-height:100vh;
+    padding-bottom:40px;
+  }
+  header{
+    background:repeating-linear-gradient(45deg,var(--amber) 0 18px,#1A1D23 18px 36px);
+    padding:6px 0;
+  }
+  .head-inner{
+    background:var(--asphalt);
+    margin:0;
+    padding:18px 16px 14px;
+  }
+  h1{font-size:22px;font-weight:800;letter-spacing:.5px}
+  h1 span{color:var(--amber)}
+  .sub{color:var(--text-dim);font-size:13px;margin-top:2px}
+  .wrap{max-width:560px;margin:0 auto;padding:0 14px}
+
+  /* Add form */
+  .add-box{
+    background:var(--card);
+    border:1px solid var(--card-edge);
+    border-radius:14px;
+    padding:14px;
+    margin-top:16px;
+  }
+  .add-box input[type=text]{
+    width:100%;
+    background:#12151B;
+    border:1px solid var(--card-edge);
+    border-radius:10px;
+    color:var(--text);
+    font-size:16px;
+    padding:13px 12px;
+    outline:none;
+  }
+  .add-box input[type=text]:focus{border-color:var(--amber)}
+  .row{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+  .seg{display:flex;gap:6px;flex:1}
+  .seg button{
+    flex:1;
+    background:#12151B;
+    border:1px solid var(--card-edge);
+    color:var(--text-dim);
+    border-radius:10px;
+    padding:10px 6px;
+    font-size:14px;
+    font-weight:600;
+    cursor:pointer;
+  }
+  .seg button.on-boss{background:var(--amber);border-color:var(--amber);color:#141414}
+  .seg button.on-me{background:var(--blue);border-color:var(--blue);color:#0D1420}
+  .seg button.on-urgent{background:var(--red);border-color:var(--red);color:#1A0D0D}
+  .add-btn{
+    width:100%;
+    margin-top:10px;
+    background:var(--amber);
+    border:none;
+    border-radius:10px;
+    color:#141414;
+    font-size:16px;
+    font-weight:800;
+    padding:14px;
+    cursor:pointer;
+    letter-spacing:.3px;
+  }
+  .add-btn:active{background:var(--amber-dark)}
+
+  /* Filters */
+  .filters{display:flex;gap:8px;margin:18px 0 10px}
+  .filters button{
+    flex:1;
+    background:transparent;
+    border:1px solid var(--card-edge);
+    color:var(--text-dim);
+    border-radius:999px;
+    padding:8px;
+    font-size:13px;
+    font-weight:600;
+    cursor:pointer;
+  }
+  .filters button.active{background:var(--text);color:#141414;border-color:var(--text)}
+
+  /* Task cards */
+  .task{
+    background:var(--card);
+    border:1px solid var(--card-edge);
+    border-radius:12px;
+    margin-bottom:10px;
+    display:flex;
+    overflow:hidden;
+  }
+  .stripe{width:6px;flex-shrink:0}
+  .stripe.boss{background:var(--amber)}
+  .stripe.me{background:var(--blue)}
+  .task-body{flex:1;padding:12px 12px 10px;min-width:0}
+  .task-top{display:flex;align-items:flex-start;gap:8px}
+  .task-title{font-size:16px;font-weight:600;line-height:1.35;word-break:break-word;flex:1}
+  .task.done .task-title{text-decoration:line-through;color:var(--text-dim)}
+  .badges{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;align-items:center}
+  .badge{
+    font-size:11px;
+    font-weight:700;
+    padding:3px 8px;
+    border-radius:999px;
+    letter-spacing:.4px;
+  }
+  .badge.boss{background:rgba(255,176,32,.15);color:var(--amber)}
+  .badge.me{background:rgba(91,168,244,.15);color:var(--blue)}
+  .badge.urgent{background:rgba(244,91,91,.18);color:var(--red)}
+  .badge.time{background:transparent;color:var(--text-dim);font-weight:500;padding-left:0}
+  .task-actions{display:flex;gap:8px;margin-top:10px}
+  .task-actions button{
+    border:none;
+    border-radius:8px;
+    padding:9px 14px;
+    font-size:13px;
+    font-weight:700;
+    cursor:pointer;
+  }
+  .btn-done{background:var(--green);color:#0D1A12}
+  .btn-undo{background:#2C333F;color:var(--text)}
+  .btn-del{background:transparent;color:var(--red);border:1px solid rgba(244,91,91,.4) !important}
+
+  .empty{
+    text-align:center;
+    color:var(--text-dim);
+    padding:44px 20px;
+    font-size:15px;
+    line-height:1.6;
+  }
+  .counts{
+    display:flex;
+    gap:10px;
+    margin-top:14px;
+  }
+  .count-card{
+    flex:1;
+    background:var(--card);
+    border:1px solid var(--card-edge);
+    border-radius:12px;
+    padding:10px;
+    text-align:center;
+  }
+  .count-num{font-size:22px;font-weight:800}
+  .count-lbl{font-size:11px;color:var(--text-dim);letter-spacing:.5px;text-transform:uppercase;margin-top:2px}
+  .loading{text-align:center;color:var(--text-dim);padding:40px}
+  @media (prefers-reduced-motion: no-preference){
+    .task{animation:pop .18s ease}
+    @keyframes pop{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="head-inner wrap">
+    <h1>WORK <span>TASKS</span></h1>
+    <div class="sub">Tasks from boss & my own tasks — all in one list</div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="counts">
+    <div class="count-card"><div class="count-num" id="cOpen">0</div><div class="count-lbl">To do</div></div>
+    <div class="count-card"><div class="count-num" id="cBoss" style="color:var(--amber)">0</div><div class="count-lbl">From boss</div></div>
+    <div class="count-card"><div class="count-num" id="cDone" style="color:var(--green)">0</div><div class="count-lbl">Done</div></div>
+  </div>
+
+  <div class="add-box">
+    <input type="text" id="taskInput" placeholder="Write a task... (example: Call boss about load)" maxlength="200">
+    <div class="row">
+      <div class="seg" id="whoSeg">
+        <button id="whoBoss" class="on-boss">From BOSS</button>
+        <button id="whoMe">My task</button>
+      </div>
+      <div class="seg" style="max-width:120px">
+        <button id="urgentBtn">Urgent?</button>
+      </div>
+    </div>
+    <button class="add-btn" id="addBtn">+ ADD TASK</button>
+  </div>
+
+  <div class="filters">
+    <button data-f="open" class="active">To do</button>
+    <button data-f="boss">Boss</button>
+    <button data-f="me">Mine</button>
+    <button data-f="done">Done</button>
+    <button data-f="all">All</button>
+  </div>
+
+  <div id="list"><div class="loading">Loading tasks...</div></div>
+</div>
+
+<script>
+const KEY = 'boss-todo-tasks';
+let tasks = [];
+let who = 'boss';
+let urgent = false;
+let filter = 'open';
+
+const $ = id => document.getElementById(id);
+
+const hasClaudeStorage = typeof window.storage !== 'undefined' && window.storage && window.storage.get;
+
+async function load(){
+  try{
+    if(hasClaudeStorage){
+      const r = await window.storage.get(KEY);
+      tasks = r ? JSON.parse(r.value) : [];
+    }else{
+      const r = localStorage.getItem(KEY);
+      tasks = r ? JSON.parse(r) : [];
+    }
+  }catch(e){ tasks = []; }
+  render();
+}
+
+async function save(){
+  try{
+    if(hasClaudeStorage){
+      await window.storage.set(KEY, JSON.stringify(tasks));
+    }else{
+      localStorage.setItem(KEY, JSON.stringify(tasks));
+    }
+  }catch(e){ console.error('Save failed', e); }
+}
+
+function fmtDate(ts){
+  const d = new Date(ts);
+  return d.toLocaleDateString(undefined,{day:'numeric',month:'short'}) + ' ' +
+         d.toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'});
+}
+
+function render(){
+  const open = tasks.filter(t=>!t.done);
+  $('cOpen').textContent = open.length;
+  $('cBoss').textContent = open.filter(t=>t.who==='boss').length;
+  $('cDone').textContent = tasks.filter(t=>t.done).length;
+
+  let show = tasks.slice();
+  if(filter==='open') show = show.filter(t=>!t.done);
+  if(filter==='done') show = show.filter(t=>t.done);
+  if(filter==='boss') show = show.filter(t=>t.who==='boss' && !t.done);
+  if(filter==='me')   show = show.filter(t=>t.who==='me' && !t.done);
+
+  // urgent first, then newest first
+  show.sort((a,b)=> (b.urgent - a.urgent) || (b.created - a.created));
+
+  const list = $('list');
+  if(show.length===0){
+    const msgs = {
+      open:'No tasks to do. Good job! 👍<br>Add a new task above.',
+      boss:'No open tasks from boss.',
+      me:'No open tasks of your own.',
+      done:'No finished tasks yet.',
+      all:'No tasks yet. Add your first task above.'
+    };
+    list.innerHTML = '<div class="empty">'+msgs[filter]+'</div>';
+    return;
+  }
+
+  list.innerHTML = '';
+  for(const t of show){
+    const el = document.createElement('div');
+    el.className = 'task' + (t.done ? ' done' : '');
+    el.innerHTML =
+      '<div class="stripe '+t.who+'"></div>'+
+      '<div class="task-body">'+
+        '<div class="task-top"><div class="task-title"></div></div>'+
+        '<div class="badges">'+
+          '<span class="badge '+t.who+'">'+(t.who==='boss'?'BOSS':'ME')+'</span>'+
+          (t.urgent?'<span class="badge urgent">URGENT</span>':'')+
+          '<span class="badge time">'+fmtDate(t.created)+'</span>'+
+        '</div>'+
+        '<div class="task-actions">'+
+          (t.done
+            ? '<button class="btn-undo">Undo</button>'
+            : '<button class="btn-done">✓ Done</button>')+
+          '<button class="btn-del">Delete</button>'+
+        '</div>'+
+      '</div>';
+    el.querySelector('.task-title').textContent = t.text;
+    const toggleBtn = el.querySelector(t.done ? '.btn-undo' : '.btn-done');
+    toggleBtn.onclick = async ()=>{ t.done = !t.done; await save(); render(); };
+    el.querySelector('.btn-del').onclick = async ()=>{
+      tasks = tasks.filter(x=>x.id!==t.id); await save(); render();
+    };
+    list.appendChild(el);
+  }
+}
+
+$('whoBoss').onclick = ()=>{
+  who='boss';
+  $('whoBoss').className='on-boss'; $('whoMe').className='';
+};
+$('whoMe').onclick = ()=>{
+  who='me';
+  $('whoMe').className='on-me'; $('whoBoss').className='';
+};
+$('urgentBtn').onclick = ()=>{
+  urgent = !urgent;
+  $('urgentBtn').className = urgent ? 'on-urgent' : '';
+  $('urgentBtn').textContent = urgent ? 'URGENT ✓' : 'Urgent?';
+};
+
+async function addTask(){
+  const text = $('taskInput').value.trim();
+  if(!text) return;
+  tasks.push({
+    id: Date.now()+'-'+Math.random().toString(36).slice(2,6),
+    text, who, urgent,
+    done:false,
+    created: Date.now()
+  });
+  $('taskInput').value = '';
+  urgent = false;
+  $('urgentBtn').className=''; $('urgentBtn').textContent='Urgent?';
+  await save();
+  filter = 'open';
+  document.querySelectorAll('.filters button').forEach(b=>b.classList.toggle('active', b.dataset.f==='open'));
+  render();
+}
+$('addBtn').onclick = addTask;
+$('taskInput').addEventListener('keydown', e=>{ if(e.key==='Enter') addTask(); });
+
+document.querySelectorAll('.filters button').forEach(b=>{
+  b.onclick = ()=>{
+    filter = b.dataset.f;
+    document.querySelectorAll('.filters button').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    render();
+  };
+});
+
+load();
+</script>
+</body>
+</html>
