@@ -178,7 +178,7 @@
 <header>
   <div class="head-inner wrap">
     <h1>WORK <span>TASKS</span></h1>
-    <div class="sub">Tasks from boss & my own tasks — all in one list</div>
+    <div class="sub">Shared list — everyone sees the same tasks</div>
   </div>
 </header>
 
@@ -223,30 +223,70 @@ let filter = 'open';
 
 const $ = id => document.getElementById(id);
 
-const hasClaudeStorage = typeof window.storage !== 'undefined' && window.storage && window.storage.get;
+// ============================================================
+// PASTE YOUR SUPABASE DETAILS HERE (between the quotes)
+// 1) Project URL   — looks like: https://abcdefgh.supabase.co
+// 2) anon public key — a long text starting with "eyJ..." or "sb_publishable_..."
+const SUPABASE_URL = "https://bplhqnwkeenrbhdhnpuh.supabase.co/rest/v1/";
+const SUPABASE_KEY = "sb_publishable_hNtnPwayIv2510Ss4wjp4Q_2C3yVqel";
+// ============================================================
+
+const DB_OK = SUPABASE_URL.startsWith('https://');
+const API = SUPABASE_URL + '/rest/v1/tasks';
+const HEADERS = {
+  'apikey': SUPABASE_KEY,
+  'Authorization': 'Bearer ' + SUPABASE_KEY,
+  'Content-Type': 'application/json'
+};
+let lastJson = '';
 
 async function load(){
+  if(!DB_OK){
+    document.getElementById('list').innerHTML =
+      '<div class="empty">⚠️ Database details are missing.<br>Open the file and paste your Supabase URL and key.</div>';
+    return;
+  }
   try{
-    if(hasClaudeStorage){
-      const r = await window.storage.get(KEY);
-      tasks = r ? JSON.parse(r.value) : [];
-    }else{
-      const r = localStorage.getItem(KEY);
-      tasks = r ? JSON.parse(r) : [];
-    }
-  }catch(e){ tasks = []; }
+    const res = await fetch(API + '?select=*', {headers: HEADERS});
+    if(!res.ok) throw new Error(await res.text());
+    tasks = await res.json();
+    lastJson = JSON.stringify(tasks);
+  }catch(e){
+    console.error(e);
+    document.getElementById('list').innerHTML =
+      '<div class="empty">⚠️ Cannot connect to database.<br>Check internet, the URL/key, or that the "tasks" table exists.</div>';
+    return;
+  }
   render();
 }
 
-async function save(){
-  try{
-    if(hasClaudeStorage){
-      await window.storage.set(KEY, JSON.stringify(tasks));
-    }else{
-      localStorage.setItem(KEY, JSON.stringify(tasks));
-    }
-  }catch(e){ console.error('Save failed', e); }
+async function dbAdd(task){
+  await fetch(API, {method:'POST', headers:HEADERS, body: JSON.stringify(task)});
 }
+async function dbUpdate(id, changes){
+  await fetch(API + '?id=eq.' + encodeURIComponent(id),
+    {method:'PATCH', headers:HEADERS, body: JSON.stringify(changes)});
+}
+async function dbDelete(id){
+  await fetch(API + '?id=eq.' + encodeURIComponent(id),
+    {method:'DELETE', headers:HEADERS});
+}
+
+// Check for changes from other devices every 5 seconds
+setInterval(async ()=>{
+  if(!DB_OK) return;
+  try{
+    const res = await fetch(API + '?select=*', {headers: HEADERS});
+    if(!res.ok) return;
+    const fresh = await res.json();
+    const freshJson = JSON.stringify(fresh);
+    if(freshJson !== lastJson){
+      tasks = fresh;
+      lastJson = freshJson;
+      render();
+    }
+  }catch(e){}
+}, 5000);
 
 function fmtDate(ts){
   const d = new Date(ts);
@@ -304,9 +344,15 @@ function render(){
       '</div>';
     el.querySelector('.task-title').textContent = t.text;
     const toggleBtn = el.querySelector(t.done ? '.btn-undo' : '.btn-done');
-    toggleBtn.onclick = async ()=>{ t.done = !t.done; await save(); render(); };
+    toggleBtn.onclick = async ()=>{
+      t.done = !t.done;
+      render();
+      await dbUpdate(t.id, {done: t.done});
+    };
     el.querySelector('.btn-del').onclick = async ()=>{
-      tasks = tasks.filter(x=>x.id!==t.id); await save(); render();
+      tasks = tasks.filter(x=>x.id!==t.id);
+      render();
+      await dbDelete(t.id);
     };
     list.appendChild(el);
   }
@@ -329,19 +375,20 @@ $('urgentBtn').onclick = ()=>{
 async function addTask(){
   const text = $('taskInput').value.trim();
   if(!text) return;
-  tasks.push({
+  const task = {
     id: Date.now()+'-'+Math.random().toString(36).slice(2,6),
     text, who, urgent,
     done:false,
     created: Date.now()
-  });
+  };
+  tasks.push(task);
   $('taskInput').value = '';
   urgent = false;
   $('urgentBtn').className=''; $('urgentBtn').textContent='Urgent?';
-  await save();
   filter = 'open';
   document.querySelectorAll('.filters button').forEach(b=>b.classList.toggle('active', b.dataset.f==='open'));
   render();
+  await dbAdd(task);
 }
 $('addBtn').onclick = addTask;
 $('taskInput').addEventListener('keydown', e=>{ if(e.key==='Enter') addTask(); });
