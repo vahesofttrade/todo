@@ -235,9 +235,10 @@ const DB_OK = SUPABASE_URL.startsWith('https://');
 const API = SUPABASE_URL + '/rest/v1/tasks';
 const HEADERS = {
   'apikey': SUPABASE_KEY,
-  'Authorization': 'Bearer ' + SUPABASE_KEY,
   'Content-Type': 'application/json'
 };
+// Old-style keys (eyJ...) also need the Authorization header
+if(SUPABASE_KEY.startsWith('eyJ')) HEADERS['Authorization'] = 'Bearer ' + SUPABASE_KEY;
 let lastJson = '';
 
 async function load(){
